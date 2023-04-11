@@ -8,8 +8,8 @@ import pandas as pd
 
 def ArtiLogTest():
     k = 22
-    # all_traces, traces_dict, traces_num, ori2dev_dict, flag = init_json_data()
-    all_traces, traces_dict, traces_num, ori2dev_dict, flag = load_json_data()
+    all_traces, traces_dict, traces_num, ori2dev_dict, flag = init_json_data()
+    # all_traces, traces_dict, traces_num, ori2dev_dict, flag = load_json_data()
     print("==========数据状况==========")
     print("日志集共有", len(all_traces), "种轨迹,共有:", traces_num, "条轨迹")
     fit = sum(traces_dict[key] for key in ori2dev_dict.keys())
@@ -21,86 +21,50 @@ def ArtiLogTest():
     print("--------------------------------------------------------")
     init_center = 5
     min_clust_size = 100
-    bleu_rate_data = []
-    bleu_rate_with_noise_data = []
-    bleu_time_data = []
-    bleu_noise_data = []
-    bleu_correct_data = []
-    bleu_wrong_data = []
-    col = [round(c * 0.1, 2) for c in range(8)]
-    line = [round(l * 0.1, 2) for l in range(11)]
-    best_eps = []
-    best_cost = traces_num
+    len_eps = 0.5
+    bleu_data = []
     for i in range(11):
-        bleu_eps = i * 0.1
-        rate_lines = []
-        rate_with_noise_lines = []
-        time_lines = []
-        noise_lines = []
-        correct_lines = []
-        wrong_lines = []
-        for j in range(8):
-            len_eps = j * 0.1
-            correct, wrong, noise, rate, rate_with_noise, cost_time = doConsCluster(init_center, round(bleu_eps, 2),
-                                                                                    round(len_eps, 2),
-                                                                                    min_clust_size,
-                                                                                    all_traces,
-                                                                                    traces_dict, traces_num,
-                                                                                    ori2dev_dict)
-            best_cost = min(best_cost, wrong + noise)
-            if best_cost == wrong + noise: best_eps.append([bleu_eps, len_eps])
-            rate_lines.append(rate)
-            rate_with_noise_lines.append(rate_with_noise)
-            time_lines.append(cost_time)
-            noise_lines.append(noise)
-            correct_lines.append(correct)
-            wrong_lines.append(wrong)
-        bleu_rate_data.append(rate_lines)
-        bleu_rate_with_noise_data.append(rate_with_noise_lines)
-        bleu_time_data.append(time_lines)
-        bleu_noise_data.append(noise_lines)
-        bleu_correct_data.append(correct_lines)
-        bleu_wrong_data.append(wrong_lines)
-    print("----------------------------------------------------------")
-    print("bleu_eps:", bleu_eps, "len_eps:", len_eps)
-    print("----------------------------------------------------------")
-    with pd.ExcelWriter('Bleu_Data.xlsx') as writer:
-        pd.DataFrame(bleu_rate_data, columns=col, index=line).to_excel(writer, sheet_name='Rate')
-        pd.DataFrame(bleu_rate_with_noise_data, columns=col, index=line).to_excel(writer, sheet_name='Rate With Noise')
-        pd.DataFrame(bleu_time_data, columns=col, index=line).to_excel(writer, sheet_name='Time')
-        pd.DataFrame(bleu_noise_data, columns=col, index=line).to_excel(writer, sheet_name='Noise')
-        pd.DataFrame(bleu_correct_data, columns=col, index=line).to_excel(writer, sheet_name='Correct')
-        pd.DataFrame(bleu_wrong_data, columns=col, index=line).to_excel(writer, sheet_name='Wrong')
-    # 谱聚类
-    print("--------------------------------------------------------")
-    edit_data = []
-    for i in range(101):
-        edit_eps = i * 0.01
-        correct, wrong, noise, rate, rate_with_noise, cost_time = doSpecCluster(round(edit_eps, 2), k, all_traces,
-                                                                                traces_dict,
-                                                                                traces_num,
+        bleu_eps = round(i * 0.1, 2)
+        correct, wrong, noise, rate, rate_with_noise, cost_time = doConsCluster(init_center, bleu_eps,
+                                                                                len_eps,
+                                                                                min_clust_size,
+                                                                                all_traces,
+                                                                                traces_dict, traces_num,
                                                                                 ori2dev_dict)
-        edit_data.append([edit_eps, rate, rate_with_noise, cost_time, noise, correct, wrong])
-    df_edit = pd.DataFrame(edit_data,
-                           columns=['edit_eps', 'rate', 'rate_with_noise', 'cost_time', 'noise', 'correct', 'wrong'])
-    df_edit.to_excel("Edit_Data.xlsx", sheet_name='Edit', index=False)
+        bleu_data.append([bleu_eps, rate, rate_with_noise, cost_time, noise, correct, wrong])
+    df_bleu = pd.DataFrame(bleu_data,
+                           columns=['bleu_eps', 'rate', 'rate_with_noise', 'cost_time', 'noise', 'correct', 'wrong'])
+    df_bleu.to_excel("Bleu_Data.xlsx", sheet_name='Bleu', index=False)
+    # 谱聚类
+    # print("--------------------------------------------------------")
+    # edit_data = []
+    # for i in range(11):
+    #     edit_eps = round(i * 0.1, 2)
+    #     correct, wrong, noise, rate, rate_with_noise, cost_time = doSpecCluster(edit_eps, k, all_traces,
+    #                                                                             traces_dict,
+    #                                                                             traces_num,
+    #                                                                             ori2dev_dict)
+    #     edit_data.append([edit_eps, rate, rate_with_noise, cost_time, noise, correct, wrong])
+    # df_edit = pd.DataFrame(edit_data,
+    #                        columns=['edit_eps', 'rate', 'rate_with_noise', 'cost_time', 'noise', 'correct', 'wrong'])
+    # df_edit.to_excel("Edit_Data.xlsx", sheet_name='Edit', index=False)
     # K-means聚类
-    print("--------------------------------------------------------")
-    cos_data = []
-    for i in range(101):
-        cos_eps = i * 0.01
-        correct, wrong, noise, rate, rate_with_noise, cost_time = doKmeansCluster(round(cos_eps, 2), k, all_traces,
-                                                                                  traces_dict,
-                                                                                  traces_num,
-                                                                                  ori2dev_dict)
-        cos_data.append([cos_eps, rate, rate_with_noise, cost_time, noise, correct, wrong])
-    df_cos = pd.DataFrame(cos_data,
-                          columns=['edit_eps', 'rate', 'rate_with_noise', 'cost_time', 'noise', 'correct', 'wrong'])
-    df_cos.to_excel("Cos_Data.xlsx", sheet_name='Cos', index=False)
+    # print("--------------------------------------------------------")
+    # cos_data = []
+    # for i in range(101):
+    #     cos_eps = round(i * 0.01, 2)
+    #     correct, wrong, noise, rate, rate_with_noise, cost_time = doKmeansCluster(cos_eps, k, all_traces,
+    #                                                                               traces_dict,
+    #                                                                               traces_num,
+    #                                                                               ori2dev_dict)
+    #     cos_data.append([cos_eps, rate, rate_with_noise, cost_time, noise, correct, wrong])
+    # df_cos = pd.DataFrame(cos_data,
+    #                       columns=['cos_eps', 'rate', 'rate_with_noise', 'cost_time', 'noise', 'correct', 'wrong'])
+    # df_cos.to_excel("Cos_Data.xlsx", sheet_name='Cos', index=False)
 
 
 def doConsCluster(init_center, bleu_eps, len_eps, min_clust_size, all_traces, traces_dict, traces_num, ori2dev_dict):
-    print("Bleu+dbscan修复开始,bleu_eps:", bleu_eps, ",len_eps:", len_eps)
+    print("Bleu+dbscan修复开始,bleu_eps:", bleu_eps)
     cluster_groups, cost_time = dbscan_bleu(traces_dict, all_traces, init_center, bleu_eps, len_eps, min_clust_size)
     correct, wrong, noise, rate, rate_with_noise = compare(cluster_groups, traces_dict, traces_num, ori2dev_dict)
     print("修复成功:", correct, "条,修复失败:", wrong, "条,准确率:", rate,
@@ -133,7 +97,7 @@ def doKmeansCluster(cos_eps, k, all_traces, traces_dict, traces_num, ori2dev_dic
     for i in range(10):
         cluster_groups, cost_time = kmeans_cos(all_traces, traces_dict, cos_eps, k)
         correct, wrong, noise, rate, rate_with_noise = compare(cluster_groups, traces_dict, traces_num, ori2dev_dict)
-        temp_min_cost = correct + wrong
+        temp_min_cost = noise + wrong
         if temp_min_cost < min_cost:
             best_correct = correct
             best_wrong = wrong
@@ -149,7 +113,7 @@ def doKmeansCluster(cos_eps, k, all_traces, traces_dict, traces_num, ori2dev_dic
     return best_correct, best_wrong, best_noise, best_rate, best_rate_with_noise, best_cost_time
 
 
-def doCluster(filepath, case, event):
+def doRealLogCluster(filepath, case, event):
     print(">>>>>>>>>>>>>>正在处理日志：", filepath, ">>>>>>>>>>>>>>>>")
     all_traces, traces_dict, traces_num = init_finale_data(filepath, case, event)
     avgFreq = sum(traces_dict.values()) / len(traces_dict)
@@ -194,7 +158,7 @@ def compare(cluster_groups, traces_dict, traces_num, ori2dev_dict):
                 if ori2dev_dict.get(trace) is None:
                     wrong += traces_dict[trace]
         else:
-            # correct += traces_dict[cluster[0]]
+            correct += traces_dict[cluster[0]]
             standard = ori2dev_dict.get(cluster[0])
             for i in range(len(cluster)):
                 if i == 0:
@@ -203,7 +167,7 @@ def compare(cluster_groups, traces_dict, traces_num, ori2dev_dict):
                     correct += traces_dict[cluster[i]]
                 elif ori2dev_dict.get(cluster[i]) is None:
                     wrong += traces_dict[cluster[i]]
-    noise = traces_num - correct - wrong - center
+    noise = traces_num - correct - wrong
     if (correct + wrong) > 0:
         rate = round((correct / (correct + wrong)) * 100, 2)
         rate_with_noise = round((correct / (correct + wrong + noise)) * 100, 2)

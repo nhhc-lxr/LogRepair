@@ -7,8 +7,6 @@ import pandas as pd
 from typing import List
 
 
-
-
 def init_json_data():
     file = open("bleu/data/generatedTraces.json")
     ori2dev_dict = json.loads(file.read())
